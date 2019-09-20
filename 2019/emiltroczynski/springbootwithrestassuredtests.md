@@ -2,19 +2,22 @@
 [//]: # "TODO add a photo with laptop with opened rest assured page"
 [//]: # "TODO introduction: rest assured tests for application securred with jwt token"
 
-### TL;DR  
+![alt text](Header_photo.jpg "Testing Spring Boot Application with JWT and REST-assured library
+")
+
+#### TL;DR  
 Our application has the following requirements:
 * it's based on Spring Boot
-* there are a few public endpoints  
-* an user is authenticated and authorized with JSON Web Token
+* there are few public endpoints  
+* a user is authenticated and authorized with JSON Web Token (JWT)
 * build tool is gradle
-* create e2e tests which use:  
+* e2e tests are implemented with:  
   * TestNG
   * REST assured library
 
 ## Create a simple application
 ### 1. Scaffolding
-Requirements are provided so we have to create a repository and initiate the project.  
+Requirements are provided, so we have to create a repository and initiate the project.  
 We can do it with our favourite IDE or with a command line:
 ```groovy
 mkdir ~/j-labs-blog-springboot-restassured-jwt
@@ -66,8 +69,94 @@ Execution of bootRun should return:
 ```text
 2019-09-19 20:59:27.904  INFO 10956 --- [main] jlabsblog.jwt.App: Started App in 2.654 seconds (JVM running for 3.076)
 ```
-### 2. Tasks endpoint
+### 2. Tasks endpoints
+Add a new package 'task' under jlabsblog.jwt and inside the following:
+##### Task.class
+JPA entity, it represents a table strored in database, one instance is one row in the table.
+```java
+@Entity
+public class Task {
+  @Id
+  @GeneratedValue(strategy = GenerationType.IDENTITY)
+  private Long id;
 
+  private String description;
+
+  protected Task() {}
+
+  public Task(String description) {
+    this.description = description;
+  }
+
+  public Long getId() {
+    return id;
+  }
+
+  public String getDescription() {
+    return description;
+  }
+
+  public void setDescription(String description) {
+    this.description = description;
+  }
+}
+```
+##### TaskRepository.interface
+JPA repository, provides default implementation for CRUD.
+```java
+public interface TaskRepository extends JpaRepository<Task, Long> {
+
+}
+```
+##### TaskController.class
+```java
+@RestController
+@RequestMapping("/tasks")
+public class TaskController {
+  private TaskRepository taskRepository;
+
+  public TaskController(TaskRepository taskRepository) {
+    this.taskRepository = taskRepository;
+  }
+
+  @GetMapping
+  public List<Task> getTask() {
+    return taskRepository.findAll();
+  }
+
+  @PostMapping
+  public void addTask(@RequestBody Task task) {
+    taskRepository.save(task);
+  }
+
+  @PutMapping("/{id}")
+  public void editTask(@PathVariable long id, @RequestBody Task task) {
+    Task existingTask = taskRepository.findById(id).get();
+    existingTask.setDescription(task.getDescription());
+    taskRepository.save(existingTask);
+  }
+
+  @DeleteMapping("/{id}")
+  public void deleteTask(@PathVariable long id) {
+    Task existingTask = taskRepository.findById(id).get();
+    taskRepository.delete(existingTask);
+  }
+}
+```
+But when we tried to run:
+#### console log
+```text
+Failed to configure a DataSource: 'url' attribute is not specified and no embedded datasource could be configured.
+```
+One of the solutions is:
+#### build.gradle
+```groovy
+dependencies {
+    ...
+    implementation "com.h2database:h2"
+    ...
+}
+```
 
 ## Add few basic tests
 [//]: # "TODO debugging"
