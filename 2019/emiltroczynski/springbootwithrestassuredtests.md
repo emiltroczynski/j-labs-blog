@@ -22,6 +22,7 @@ cd ~/j-labs-blog-springboot-restassured-jwt
 gradle init --type java-application --dsl groovy --test-framework testng --project-name j-labs-blog-springboot-restassured-jwt --package jlabsblog.jwt  
 ```  
 Next step is to add Spring Boot. App class needs a valid annotation and run method:  
+##### App.class
 ```java
 package jlabsblog.jwt;
 
@@ -35,13 +36,15 @@ public class App {
     }
 }
 ``` 
-To accomplish that build.gradle requires:
+and dependencies in
+##### build.gradle
 ```groovy
 implementation 'org.springframework.boot:spring-boot:2.1.8.RELEASE'
 implementation 'org.springframework.boot:spring-boot-autoconfigure:2.1.8.RELEASE'
 implementation 'org.springframework.boot:spring-boot-starter-web-services'
 ```
-and to make life easier, we use gradle plugin which contains [bootRun task that can be used to run application in an exploded form](https://docs.spring.io/spring-boot/docs/current/reference/html/using-boot-running-your-application.html)  
+To make life easier for us, we use gradle plugin which contains [bootRun task that can be used to run application in an exploded form](https://docs.spring.io/spring-boot/docs/current/reference/html/using-boot-running-your-application.html)  
+##### build.gradle
 ```groovy
 buildscript {
     repositories {
@@ -59,6 +62,7 @@ plugins {
 ```
 
 Execution of bootRun should return:
+##### console log
 ```text
 2019-09-19 20:59:27.904  INFO 10956 --- [main] jlabsblog.jwt.App: Started App in 2.654 seconds (JVM running for 3.076)
 ```
