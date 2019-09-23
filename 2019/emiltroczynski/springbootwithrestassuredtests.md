@@ -159,6 +159,62 @@ dependencies {
 ```
 
 ## Add few basic tests
+TaskControllerTests class contains our tests, e.g.: addTest:
+#### TaskControllerTests.class
+```java
+  @Test
+  public void addTask() {
+    Task retrievedTask = retrieveTask();
+
+    assertTask(retrievedTask, task);
+  }
+```
+assertTask verifies two things:
+```java
+  private void assertTask(Task actual, Task expected) {
+    SoftAssertions assertions = new SoftAssertions();
+    assertions.assertThat(actual.getDescription()).isEqualTo(expected.getDescription());
+    assertions.assertThat(actual.getId()).isGreaterThan(0);
+    assertions.assertAll();
+  }
+```
+value of description variable and if id is greater than zero. We also use SoftAssertion to be sure that no assertions have failed.  
+
+Before each test we create new Task:
+```java
+  @BeforeMethod
+  public void createTask() {
+    task = new Task("initialValue");
+    given().basePath("/tasks").contentType("application/json").body(task).when().post();
+  }
+```
+
+and after test we clean it up
+```java
+  @AfterMethod
+  public void cleanUp() {
+    deleteTask(id);
+  }
+
+  private void deleteTask(Long id) {
+    if (id != null) {
+      given().basePath("/tasks").when().delete(String.format("%s", id)).then().statusCode(200);
+    }
+  }
+```
+editTask and deleteTask, have similar structure.
+
+When tests are added, we start the application and run the tests:
+#### console log
+```text
+
+===============================================
+Default Suite
+Total tests run: 3, Failures: 0, Skips: 0
+===============================================
+
+```
+
 [//]: # "TODO debugging"
 [//]: # "TODO postman"
 
