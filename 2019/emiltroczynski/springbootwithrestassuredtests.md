@@ -39,7 +39,7 @@ public class App {
     }
 }
 ``` 
-and dependencies in
+and necessary dependencies:
 ##### build.gradle
 ```groovy
 implementation 'org.springframework.boot:spring-boot:2.1.8.RELEASE'
@@ -64,15 +64,15 @@ plugins {
 }
 ```
 
-Execution of bootRun should return:
+Thanks to the plugin, we can execute bootRun:
 ##### console log
 ```text
 2019-09-19 20:59:27.904  INFO 10956 --- [main] jlabsblog.jwt.App: Started App in 2.654 seconds (JVM running for 3.076)
 ```
 ### 2. Tasks endpoints
-Add a new package 'task' under jlabsblog.jwt and inside the following:
+Add a new package 'task' under jlabsblog.jwt with the following classes and interface:
 ##### Task.class
-JPA entity, it represents a table strored in database, one instance is one row in the table.
+JPA entity, it represents a table stored in database. One instance is one row in the table.
 ```java
 @Entity
 public class Task {
@@ -143,12 +143,12 @@ public class TaskController {
   }
 }
 ```
-But when we tried to run:
+But when we try to run the application:
 #### console log
 ```text
 Failed to configure a DataSource: 'url' attribute is not specified and no embedded datasource could be configured.
 ```
-One of the solutions is:
+We can easily fix it with adding:
 #### build.gradle
 ```groovy
 dependencies {
