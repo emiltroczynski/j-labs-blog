@@ -144,12 +144,12 @@ public class TaskController {
 }
 ```
 But when we try to run the application:
-#### console log
+##### console log
 ```text
 Failed to configure a DataSource: 'url' attribute is not specified and no embedded datasource could be configured.
 ```
 We can easily fix it with adding:
-#### build.gradle
+##### build.gradle
 ```groovy
 dependencies {
     ...
@@ -160,7 +160,7 @@ dependencies {
 
 ## Add few basic tests
 TaskControllerTests class contains our tests, e.g.: addTest:
-#### TaskControllerTests
+##### TaskControllerTests
 ```java
   @Test
   public void addTask() {
@@ -205,7 +205,7 @@ and after test we clean it up
 editTask and deleteTask, have similar structure.
 
 When tests are added, we start the application and run the tests:
-#### console log
+##### console log
 ```text
 
 ===============================================
@@ -226,7 +226,7 @@ In package jlabsblog.jwt.user we added two classes and one interface.
 Structure is very similar to package with tasks.
 We have JwtUser which is JPA entity, JwtUserRepository which is implementation for CRUD and JwtUserController which is responsible for endpoints.
 
-#### JwtUser
+##### JwtUser
 ```java
 @Entity
 public class JwtUser {
@@ -259,7 +259,7 @@ public class JwtUser {
 }
 ``` 
 
-#### JwtUserRepository
+##### JwtUserRepository
 
 ```java
 public interface JwtUserRepository extends JpaRepository<JwtUser, Long> {
@@ -267,7 +267,7 @@ public interface JwtUserRepository extends JpaRepository<JwtUser, Long> {
 }
 ```
 
-#### JwtUserController
+##### JwtUserController
 ```java
 public class JwtUserController {
 	private JwtUserRepository jwtUserRepository;
@@ -289,18 +289,163 @@ public class JwtUserController {
 ```
 BCryptPasswordEncoder requires spring-boot-starter-security. When that starter is on the classpath, our application is secured by default.  
 If we run TaskControllerTests, all of them fail with message:
-#### 
+##### console log
 ```text
 java.lang.AssertionError: 1 expectation failed.
 Expected status code <200> but was <401>.
 ```
 We can use default user: 'user' and password printed at INFO level when application starts:
+
+##### console log
 ```text
 Using generated security password: 8775a7ac-8ac2-45ca-9945-e18aa518c97c
 ```
 but due to requirements from the beginning, our next step is to implement a JSON Web Token.
 
 ### Authentication and authorization
+In new package jlabsblog.jwt.security we add class which implements UserDetailsService.
+##### JwtUserDetailsServiceImpl
+```java
+public class JwtUserDetailsServiceImpl implements UserDetailsService {
+  private JwtUserRepository jwtUserRepository;
+
+  public JwtUserDetailsServiceImpl(JwtUserRepository applicationUserRepository) {
+    this.jwtUserRepository = applicationUserRepository;
+  }
+
+  @Override
+  public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
+    JwtUser applicationUser = jwtUserRepository.findByUsername(username);
+    if (applicationUser == null) {
+      throw new UsernameNotFoundException(username);
+    }
+    return new User(applicationUser.getUsername(), applicationUser.getPassword(), emptyList());
+  }
+}
+```
+There are also three other classes: JwtWebSecurity, JwtAuthenticationFilter and JwtAuthorizationFilter.
+The most important part of JwtWebSecurity is configure method: 
+##### JwtWebSecurity
+```java
+	@Override
+	protected void configure(HttpSecurity http) throws Exception {
+		http.cors()
+				.and()
+				.csrf()
+				.disable()
+				.authorizeRequests()
+				.antMatchers(HttpMethod.POST, SecurityConstants.SIGN_UP_URL)
+				.permitAll()
+				.anyRequest()
+				.authenticated()
+				.and()
+				.addFilter(new JwtAuthenticationFilter(authenticationManager()))
+				.addFilter(new JwtAuthorizationFilter(authenticationManager()))
+				.sessionManagement()
+				.sessionCreationPolicy(SessionCreationPolicy.STATELESS);
+	}
+```
+
+##### JwtAuthenticationFilter
+in that class, method attemptAuthentication tries to authenticate the user:
+```java
+public Authentication attemptAuthentication(
+      HttpServletRequest request, HttpServletResponse response) throws AuthenticationException {
+    try {
+      JwtUser credentials = new ObjectMapper().readValue(request.getInputStream(), JwtUser.class);
+      return authenticationManager.authenticate(
+          new UsernamePasswordAuthenticationToken(
+              credentials.getUsername(), credentials.getPassword(), new ArrayList<>()));
+    } catch (IOException e) {
+      throw new RuntimeException();
+    }
+  }
+```
+and if the user was authenticated, successfulAuthentication method returns token:
+```java
+  protected void successfulAuthentication(
+      HttpServletRequest request,
+      HttpServletResponse response,
+      FilterChain chain,
+      Authentication authentication)
+      throws IOException, ServletException {
+    String token =
+        Jwts.builder()
+            .setSubject(authentication.getName())
+            .claim(
+                "authorities",
+                authentication.getAuthorities().stream()
+                    .map(GrantedAuthority::getAuthority)
+                    .collect(Collectors.toList()))
+            .setIssuedAt(new Date(System.currentTimeMillis()))
+            .setExpiration(new Date(System.currentTimeMillis() + JwtSecurityConstants.EXPIRATION_TIME))
+            .signWith(SignatureAlgorithm.HS512, JwtSecurityConstants.SECRET.getBytes())
+            .compact();
+    response.addHeader(JwtSecurityConstants.HEADER_STRING, JwtSecurityConstants.TOKEN_PREFIX + token);
+  }
+```
+
+##### JwtAuthorizationFilter
+doFilterInternal overrides BasicAuthenticationFilter, thanks to that, Spring Boot replaces in the filter chain default implementation with our own.
+
+```java
+ protected void doFilterInternal(
+      HttpServletRequest request, HttpServletResponse response, FilterChain chain)
+      throws IOException, ServletException {
+    String header = request.getHeader(JwtSecurityConstants.HEADER_STRING);
+
+    if (header == null || !header.startsWith(JwtSecurityConstants.TOKEN_PREFIX)) {
+      chain.doFilter(request, response);
+      return;
+    }
+
+    UsernamePasswordAuthenticationToken authenticationToken = getAuthentication(request);
+    SecurityContextHolder.getContext().setAuthentication(authenticationToken);
+    chain.doFilter(request, response);
+  }
+```
+getAuthentication reads and validates JWT. When it's valid, sets the user in the Security Context and allows the request to proceed. 
+```java
+private UsernamePasswordAuthenticationToken getAuthentication(HttpServletRequest request) {
+    String token = request.getHeader(JwtSecurityConstants.HEADER_STRING);
+    if (token != null) {
+      String user =
+          Jwts.parser()
+              .setSigningKey(JwtSecurityConstants.SECRET.getBytes())
+              .parseClaimsJws(token.replace(JwtSecurityConstants.TOKEN_PREFIX, ""))
+              .getBody()
+              .getSubject();
+      if (user != null) {
+        return new UsernamePasswordAuthenticationToken(user, null, new ArrayList<>());
+      }
+      return null;
+    }
+    return null;
+```
+
+At the end, small class with constants:
+##### JwtSecurityConstants
+```java
+public class JwtSecurityConstants {
+	public static final String SECRET = "SecretKeyToGenJWTs";
+	public static final long EXPIRATION_TIME = 86_400_000;
+	public static final String TOKEN_PREFIX = "Bearer ";
+	public static final String HEADER_STRING = "Authorization";
+	public static final String SIGN_UP_URL = "/users/sign-up";
+}
+```
+and two missing parts:
+##### App:
+```java
+    @Bean
+    public BCryptPasswordEncoder bCryptPasswordEncoder() {
+        return new BCryptPasswordEncoder();
+    }
+```
+##### build.gradle
+```groovy
+implementation "io.jsonwebtoken:jjwt:0.9.1"
+```
 
 ## Update the tests
 [//]: # "TODO read application.properties"
