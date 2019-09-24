@@ -25,7 +25,7 @@ cd ~/j-labs-blog-springboot-restassured-jwt
 gradle init --type java-application --dsl groovy --test-framework testng --project-name j-labs-blog-springboot-restassured-jwt --package jlabsblog.jwt  
 ```  
 Next step is to add Spring Boot. App class needs a valid annotation and run method:  
-##### App.class
+##### App
 ```java
 package jlabsblog.jwt;
 
@@ -71,7 +71,7 @@ Thanks to the plugin, we can execute bootRun:
 ```
 ### 2. Tasks endpoints
 Add a new package 'task' under jlabsblog.jwt with the following classes and interface:
-##### Task.class
+##### Task
 JPA entity, it represents a table stored in database. One instance is one row in the table.
 ```java
 @Entity
@@ -101,14 +101,14 @@ public class Task {
   }
 }
 ```
-##### TaskRepository.interface
+##### TaskRepository
 JPA repository, provides default implementation for CRUD.
 ```java
 public interface TaskRepository extends JpaRepository<Task, Long> {
 
 }
 ```
-##### TaskController.class
+##### TaskController
 ```java
 @RestController
 @RequestMapping("/tasks")
@@ -160,7 +160,7 @@ dependencies {
 
 ## Add few basic tests
 TaskControllerTests class contains our tests, e.g.: addTest:
-#### TaskControllerTests.class
+#### TaskControllerTests
 ```java
   @Test
   public void addTask() {
@@ -219,6 +219,88 @@ Total tests run: 3, Failures: 0, Skips: 0
 [//]: # "TODO postman"
 
 ## Secure an endpoints
+We need two services: one for managing users and second for authentication and authorization. 
+
+### Users
+In package jlabsblog.jwt.user we added two classes and one interface. 
+Structure is very similar to package with tasks.
+We have JwtUser which is JPA entity, JwtUserRepository which is implementation for CRUD and JwtUserController which is responsible for endpoints.
+
+#### JwtUser
+```java
+@Entity
+public class JwtUser {
+	@Id
+	@GeneratedValue(strategy = GenerationType.IDENTITY)
+	private Long id;
+
+	private String username;
+	private String password;
+
+	public Long getId() {
+		return id;
+	}
+
+	public String getUsername() {
+		return username;
+	}
+
+	public void setUsername(String username) {
+		this.username = username;
+	}
+
+	public String getPassword() {
+		return password;
+	}
+
+	public void setPassword(String password) {
+		this.password = password;
+	}
+}
+``` 
+
+#### JwtUserRepository
+
+```java
+public interface JwtUserRepository extends JpaRepository<JwtUser, Long> {
+	JwtUser findByUsername(String username);
+}
+```
+
+#### JwtUserController
+```java
+public class JwtUserController {
+	private JwtUserRepository jwtUserRepository;
+	private BCryptPasswordEncoder bCryptPasswordEncoder;
+
+	public JwtUserController(
+			JwtUserRepository jwtUserRepository,
+			BCryptPasswordEncoder bCryptPasswordEncoder) {
+		this.jwtUserRepository = jwtUserRepository;
+		this.bCryptPasswordEncoder = bCryptPasswordEncoder;
+	}
+
+	@PostMapping("/sign-up")
+	public void signUp(@RequestBody JwtUserController user) {
+		user.setPassword(bCryptPasswordEncoder.encode(user.getPassword()));
+		jwtUserRepository.save(user);
+	}
+}
+```
+BCryptPasswordEncoder requires spring-boot-starter-security. When that starter is on the classpath, our application is secured by default.  
+If we run TaskControllerTests, all of them fail with message:
+#### 
+```text
+java.lang.AssertionError: 1 expectation failed.
+Expected status code <200> but was <401>.
+```
+We can use default user: 'user' and password printed at INFO level when application starts:
+```text
+Using generated security password: 8775a7ac-8ac2-45ca-9945-e18aa518c97c
+```
+but due to requirements from the beginning, our next step is to implement a JSON Web Token.
+
+### Authentication and authorization
 
 ## Update the tests
 [//]: # "TODO read application.properties"
@@ -229,7 +311,7 @@ Total tests run: 3, Failures: 0, Skips: 0
 ### Useful links:
 [//]: # "TODO [Link to repo](???)"
 [Spring Boot documentation](https://docs.spring.io/spring-boot/docs/current/reference/htmlsingle/)  
-[Secure endpoint with Jwt library](https://auth0.com/blog/implementing-jwt-authentication-on-spring-boot/#Securing-RESTful-APIs-with-JWTs)  
+[Secure endpoint with JWT library](https://auth0.com/blog/implementing-jwt-authentication-on-spring-boot/#Securing-RESTful-APIs-with-JWTs)  
 [Gradle](https://gradle.org/)  
 [TestNG](https://testng.org)
 [REST assured](http://rest-assured.io/)
