@@ -498,6 +498,76 @@ Total tests run: 3, Failures: 0, Skips: 0
 ===============================================
 
 ```
+
+### Logs and properties of application
+At the end we want to sort out logs and read application properties.
+ 
+#### Logs
+In resources we add application.properties with two lines:
+##### application.properties
+```properties
+server.port=8099
+logging.level.root=OFF
+``` 
+All logs are now switched off, but it doesn't apply for logs from tests.  
+To change that we have to add file logback.xml into tests' resources:
+##### logback.xml
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+  <include resource="org/springframework/boot/logging/logback/base.xml" />
+  <logger name="org.springframework.core " level="ERROR" />
+  <logger name="org.springframework.beans" level="ERROR" />
+  <logger name="org.springframework.context" level="ERROR" />
+  <logger name="org.springframework.transaction" level="ERROR" />
+  <logger name="org.springframework.web" level="ERROR" />
+  <logger name="org.springframework.test" level="ERROR" />
+  <logger name="org.hibernate" level="ERROR" />
+</configuration>
+```
+We got rid of all logs, but we can easily control it with RequestSpecBuilder:
+```java
+addFilter(new RequestLoggingFilter(LogDetail.ALL)
+addFilter(new ResponseLoggingFilter(LogDetail.ALL)
+```
+these two lines provides logs with requests and responses, e.g.:
+##### console log
+```text
+Request method:	POST
+Request URI:	http://localhost:8099/tasks
+Proxy:			<none>
+Request params:	<none>
+Query params:	<none>
+Form params:	<none>
+Path params:	<none>
+Headers:		Authorization=Bearer eyJhbGciOiJIUzUxMiJ9.eyJzdWIiOiJ1c2VybmFtZSIsImF1dGhvcml0aWVzIjpbXSwiaWF0IjoxNTY5MzI4OTk5LCJleHAiOjE1Njk0MTUzOTl9.9oquWLKG5bAXvktUrsUcFuOh3iQKsIQErVffVzXMhTSGoW-9jNuRdrna5EofMr05_LImukp83Rk0RayPX7e1_g
+				Accept=*/*
+				Content-Type=application/json; charset=UTF-8
+Cookies:		<none>
+Multiparts:		<none>
+Body:
+{
+    "id": null,
+    "description": "initialValue"
+}
+HTTP/1.1 200 
+X-Content-Type-Options: nosniff
+X-XSS-Protection: 1; mode=block
+Cache-Control: no-cache, no-store, max-age=0, must-revalidate
+Pragma: no-cache
+Expires: 0
+X-Frame-Options: DENY
+Content-Length: 0
+Date: Tue, 24 Sep 2019 12:43:19 GMT
+```
+
+#### Application properties
+In application.properties we changed default port.  
+To read it:
+- test class has to have annotation @TestPropertySource
+- test class has to extend AbstractTestNGSpringContextTests
+- port can be assigned with @Value
+
 ## Conclusion
 
 ### Useful links:
