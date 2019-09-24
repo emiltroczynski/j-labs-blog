@@ -450,7 +450,54 @@ implementation "io.jsonwebtoken:jjwt:0.9.1"
 ## Update the tests
 [//]: # "TODO read application.properties"
 [//]: # "TODO logging level"
+To use JWT we add @BeforeClass method:
+```java
+  @BeforeClass
+  public void authorization() {
+    JwtUser user = new JwtUser();
+    user.setUsername("username");
+    user.setPassword("password");
 
+    given()
+        .basePath("/users/sign-up")
+        .contentType("application/json")
+        .body(user)
+        .when()
+        .post()
+        .then()
+        .statusCode(200);
+
+    String token =
+        given()
+            .basePath("/login")
+            .contentType("application/json")
+            .body(user)
+            .when()
+            .post()
+            .then()
+            .statusCode(200)
+            .extract()
+            .header(JwtSecurityConstants.HEADER_STRING);
+
+    specification =
+        new RequestSpecBuilder()
+            .addHeader(JwtSecurityConstants.HEADER_STRING, token)
+            .setBasePath("/tasks")
+            .build();
+  }
+```
+also to simplify tests we swap basePath("/tasks") with spec(specification).  
+Tests execution returns:
+
+##### console log
+```text
+
+===============================================
+Default Suite
+Total tests run: 3, Failures: 0, Skips: 0
+===============================================
+
+```
 ## Conclusion
 
 ### Useful links:
