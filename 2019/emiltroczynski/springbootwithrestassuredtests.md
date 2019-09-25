@@ -581,7 +581,7 @@ In our application the most complicated in implementation was JWT, but adding to
 Spring Boot, gradle and TestNG offer a lot more, but we have a great place to start.
 
 ### Useful links:
-[//]: # "TODO [Link to repo](???)"
+[Link to the repository](https://github.com/emiltroczynski/j-labs-blog-springboot-restassured-jwt)  
 [Spring Boot documentation](https://docs.spring.io/spring-boot/docs/current/reference/htmlsingle/)  
 [Secure endpoint with JWT library](https://auth0.com/blog/implementing-jwt-authentication-on-spring-boot/#Securing-RESTful-APIs-with-JWTs)  
 [Gradle](https://gradle.org/)  
