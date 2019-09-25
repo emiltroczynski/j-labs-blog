@@ -47,7 +47,7 @@ implementation 'org.springframework.boot:spring-boot:2.1.8.RELEASE'
 implementation 'org.springframework.boot:spring-boot-autoconfigure:2.1.8.RELEASE'
 implementation 'org.springframework.boot:spring-boot-starter-web-services'
 ```
-To make life easier for us, we use gradle plugin which contains [bootRun task that can be used to run application in an exploded form](https://docs.spring.io/spring-boot/docs/current/reference/html/using-boot-running-your-application.html)  
+To make life easier for us, we use gradle plugin which contains [bootRun task that can be used to run application in an exploded form](https://docs.spring.io/spring-boot/docs/current/reference/html/using-boot-running-your-application.html#using-boot-running-with-the-gradle-plugin)  
 ##### build.gradle
 ```groovy
 buildscript {
@@ -223,6 +223,7 @@ Total tests run: 3, Failures: 0, Skips: 0
 There was no failure, so let's secure the application.
 
 ## 3. Secure the endpoints
+This section is heavily based on: [Secure endpoint with JWT library](https://auth0.com/blog/implementing-jwt-authentication-on-spring-boot/#Securing-RESTful-APIs-with-JWTs)  
 We need two services: one for managing users and second for authentication and authorization. 
 
 ### 3.1. Users
@@ -582,7 +583,8 @@ Spring Boot, gradle and TestNG offer a lot more, but we have a great place to st
 
 ### Useful links:
 [Link to the repository](https://github.com/emiltroczynski/j-labs-blog-springboot-restassured-jwt)  
-[Spring Boot documentation](https://docs.spring.io/spring-boot/docs/current/reference/htmlsingle/)  
+[Spring Boot documentation](https://docs.spring.io/spring-boot/docs/current/reference/htmlsingle/)    
+[Gradle plugin](https://docs.spring.io/spring-boot/docs/current/reference/html/using-boot-running-your-application.html#using-boot-running-with-the-gradle-plugin)  
 [Secure endpoint with JWT library](https://auth0.com/blog/implementing-jwt-authentication-on-spring-boot/#Securing-RESTful-APIs-with-JWTs)  
 [Gradle](https://gradle.org/)  
 [TestNG](https://testng.org)
