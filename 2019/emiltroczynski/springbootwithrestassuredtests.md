@@ -1,30 +1,31 @@
-# Testing Spring Boot Application with REST-assured library
-[//]: # "TODO add a photo with laptop with opened rest assured page"
-[//]: # "TODO introduction: rest assured tests for application securred with jwt token"
+# Testing Spring Boot Application secured with JSON Web Tokens using REST-assured library
 
-![alt text](Header_photo.jpg "Testing Spring Boot Application with JWT and REST-assured library
+![alt text](Header_photo.jpg "Testing Spring Boot Application secured with JSON Web Tokens using REST-assured library
 ")
 
 #### TL;DR  
-Our application has the following requirements:
-* it's based on Spring Boot
+REST-assured library is very well crafted library making test effort a lot simpler and more efficient. 
+Combined with Spring Boot, gradle and TestNG, it allows implement complicated application with ease.  
+
+We're going to go over building an application with the following requirements:
+* we use Spring Boot as framework
 * there are few public endpoints  
-* a user is authenticated and authorized with JSON Web Token (JWT)
+* an user is authenticated and authorized with the JSON Web Token (JWT)
 * build tool is gradle
-* e2e tests are implemented with:  
+* tests are implemented with:  
   * TestNG
   * REST assured library
 
-## Create a simple application
-### 1. Scaffolding
-Requirements are provided, so we have to create a repository and initiate the project.  
-We can do it with our favourite IDE or with a command line:
+## 1. Create a simple application
+### 1.1. The scaffolding
+To create a repository and initiate the project, we can use our favourite IDE or a command line:
+##### command line
 ```groovy
 mkdir ~/j-labs-blog-springboot-restassured-jwt
 cd ~/j-labs-blog-springboot-restassured-jwt
 gradle init --type java-application --dsl groovy --test-framework testng --project-name j-labs-blog-springboot-restassured-jwt --package jlabsblog.jwt  
 ```  
-Next step is to add Spring Boot. App class needs a valid annotation and run method:  
+The next step is add Spring Boot. App class needs a valid annotation and run method:  
 ##### App
 ```java
 package jlabsblog.jwt;
@@ -69,10 +70,11 @@ Thanks to the plugin, we can execute bootRun:
 ```text
 2019-09-19 20:59:27.904  INFO 10956 --- [main] jlabsblog.jwt.App: Started App in 2.654 seconds (JVM running for 3.076)
 ```
-### 2. Tasks endpoints
+### 1.2. Tasks endpoints
+Our application is running so we can proceed with adding endpoints.  
 Add a new package 'task' under jlabsblog.jwt with the following classes and interface:
 ##### Task
-JPA entity, it represents a table stored in database. One instance is one row in the table.
+JPA entity, it represents a table stored in a database. One instance is one row in the table.
 ```java
 @Entity
 public class Task {
@@ -109,6 +111,7 @@ public interface TaskRepository extends JpaRepository<Task, Long> {
 }
 ```
 ##### TaskController
+Class responsible for the endpoints.
 ```java
 @RestController
 @RequestMapping("/tasks")
@@ -143,12 +146,12 @@ public class TaskController {
   }
 }
 ```
-But when we try to run the application:
+We can run the application with bootRun, but that will fail with the message:
 ##### console log
 ```text
 Failed to configure a DataSource: 'url' attribute is not specified and no embedded datasource could be configured.
 ```
-We can easily fix it with adding:
+We can easily fix that with adding dependency for JPA, for example in memory database H2:
 ##### build.gradle
 ```groovy
 dependencies {
@@ -158,9 +161,12 @@ dependencies {
 }
 ```
 
-## Add few basic tests
-TaskControllerTests class contains our tests, e.g.: addTest:
+## 2. Add a few basic tests
+We add new package jlabsblog.jwt.task in src/test.  
 ##### TaskControllerTests
+TaskControllerTests class contains our tests, below are method from that class.
+
+addTask method is the test of, how the name implies, adding a new task.
 ```java
   @Test
   public void addTask() {
@@ -169,7 +175,8 @@ TaskControllerTests class contains our tests, e.g.: addTest:
     assertTask(retrievedTask, task);
   }
 ```
-assertTask verifies two things:
+assertTask verifies value of a description and if id is greater than zero.  
+We also use SoftAssertion to be sure that no assertions have failed.
 ```java
   private void assertTask(Task actual, Task expected) {
     SoftAssertions assertions = new SoftAssertions();
@@ -178,7 +185,6 @@ assertTask verifies two things:
     assertions.assertAll();
   }
 ```
-value of description variable and if id is greater than zero. We also use SoftAssertion to be sure that no assertions have failed.  
 
 Before each test we create new Task:
 ```java
@@ -189,7 +195,7 @@ Before each test we create new Task:
   }
 ```
 
-and after test we clean it up
+and after the test we clean it up:
 ```java
   @AfterMethod
   public void cleanUp() {
@@ -202,9 +208,9 @@ and after test we clean it up
     }
   }
 ```
-editTask and deleteTask, have similar structure.
+editTask() and deleteTask(), tests of editing and deleting task, have similar structure.
 
-When tests are added, we start the application and run the tests:
+The tests are added, so we start the application and run them:
 ##### console log
 ```text
 
@@ -214,16 +220,14 @@ Total tests run: 3, Failures: 0, Skips: 0
 ===============================================
 
 ```
+There was no failure, so let's secure the application.
 
-[//]: # "TODO debugging"
-[//]: # "TODO postman"
-
-## Secure an endpoints
+## 3. Secure the endpoints
 We need two services: one for managing users and second for authentication and authorization. 
 
-### Users
+### 3.1. Users
 In package jlabsblog.jwt.user we added two classes and one interface. 
-Structure is very similar to package with tasks.
+Structure is very similar to package with the tasks.
 We have JwtUser which is JPA entity, JwtUserRepository which is implementation for CRUD and JwtUserController which is responsible for endpoints.
 
 ##### JwtUser
@@ -287,23 +291,23 @@ public class JwtUserController {
 	}
 }
 ```
-BCryptPasswordEncoder requires spring-boot-starter-security. When that starter is on the classpath, our application is secured by default.  
-If we run TaskControllerTests, all of them fail with message:
+BCryptPasswordEncoder requires spring-boot-starter-security, when that starter is on the classpath, our application is secured by default. But if we run TaskControllerTests, all of them fail with message:
 ##### console log
 ```text
 java.lang.AssertionError: 1 expectation failed.
 Expected status code <200> but was <401>.
 ```
-We can use default user: 'user' and password printed at INFO level when application starts:
+which is expected behaviour.  
+We can use default user: 'user' and password printed at INFO level when application starts to authenticate:
 
 ##### console log
 ```text
 Using generated security password: 8775a7ac-8ac2-45ca-9945-e18aa518c97c
 ```
-but due to requirements from the beginning, our next step is to implement a JSON Web Token.
+ but because we want to use the JSON Web Token, we skip that and go straight to the implementation.  
 
-### Authentication and authorization
-In new package jlabsblog.jwt.security we add class which implements UserDetailsService.
+### 3.2. Authentication and authorization
+In the new package jlabsblog.jwt.security we add the class which implements UserDetailsService, it allows to load user data into the framework.
 ##### JwtUserDetailsServiceImpl
 ```java
 public class JwtUserDetailsServiceImpl implements UserDetailsService {
@@ -323,7 +327,7 @@ public class JwtUserDetailsServiceImpl implements UserDetailsService {
   }
 }
 ```
-There are also three other classes: JwtWebSecurity, JwtAuthenticationFilter and JwtAuthorizationFilter.
+There are also three other classes: JwtWebSecurity, JwtAuthenticationFilter and JwtAuthorizationFilter.  
 The most important part of JwtWebSecurity is configure method: 
 ##### JwtWebSecurity
 ```java
@@ -345,6 +349,7 @@ The most important part of JwtWebSecurity is configure method:
 				.sessionCreationPolicy(SessionCreationPolicy.STATELESS);
 	}
 ```
+It configures public and secured endpoints, CORS and a custom security filter.
 
 ##### JwtAuthenticationFilter
 in that class, method attemptAuthentication tries to authenticate the user:
@@ -404,7 +409,7 @@ doFilterInternal overrides BasicAuthenticationFilter, thanks to that, Spring Boo
     chain.doFilter(request, response);
   }
 ```
-getAuthentication reads and validates JWT. When it's valid, sets the user in the Security Context and allows the request to proceed. 
+getAuthentication reads and validates a JWT. When it's valid, sets the user in the Security Context and allows the request to proceed. 
 ```java
 private UsernamePasswordAuthenticationToken getAuthentication(HttpServletRequest request) {
     String token = request.getHeader(JwtSecurityConstants.HEADER_STRING);
@@ -423,7 +428,7 @@ private UsernamePasswordAuthenticationToken getAuthentication(HttpServletRequest
     return null;
 ```
 
-At the end, small class with constants:
+We also need the small class with constants:
 ##### JwtSecurityConstants
 ```java
 public class JwtSecurityConstants {
@@ -434,7 +439,7 @@ public class JwtSecurityConstants {
 	public static final String SIGN_UP_URL = "/users/sign-up";
 }
 ```
-and two missing parts:
+At the end, two missing parts to make a successful build:
 ##### App:
 ```java
     @Bean
@@ -446,11 +451,11 @@ and two missing parts:
 ```groovy
 implementation "io.jsonwebtoken:jjwt:0.9.1"
 ```
+Now we can run the application and if everyting is working as expected we can go to the tests.
+There we will check how application handles authorization.
 
-## Update the tests
-[//]: # "TODO read application.properties"
-[//]: # "TODO logging level"
-To use JWT we add @BeforeClass method:
+##  4. Update the tests
+To use the JWT, we add @BeforeClass method:
 ```java
   @BeforeClass
   public void authorization() {
@@ -486,7 +491,7 @@ To use JWT we add @BeforeClass method:
             .build();
   }
 ```
-also to simplify tests we swap basePath("/tasks") with spec(specification).  
+Together with BeforeClass, we swap basePath("/tasks") with spec(specification).  
 Tests execution returns:
 
 ##### console log
@@ -499,10 +504,12 @@ Total tests run: 3, Failures: 0, Skips: 0
 
 ```
 
-### Logs and properties of application
-At the end we want to sort out logs and read application properties.
- 
-#### Logs
+## 5. Logs and properties of application
+The application works as expected, of course is very simple and if something is wrong is relatively easy to figure out the cause.
+To deal with more complicated scenarios, we should take care about logs from the application and from the tests. 
+Also we should have a mean to adjust the test, it is shown with reading application properties during the tests.  
+
+### 5.1. Logs
 In resources we add application.properties with two lines:
 ##### application.properties
 ```properties
@@ -525,12 +532,12 @@ To change that we have to add file logback.xml into tests' resources:
   <logger name="org.hibernate" level="ERROR" />
 </configuration>
 ```
-We got rid of all logs, but we can easily control it with RequestSpecBuilder:
+We got rid of all logs, and now we can easily control them with RequestSpecBuilder:
 ```java
 addFilter(new RequestLoggingFilter(LogDetail.ALL)
 addFilter(new ResponseLoggingFilter(LogDetail.ALL)
 ```
-these two lines provides logs with requests and responses, e.g.:
+these two lines provides logs with requests and responses, in case there is any problem, we have place, where we can start to work out:
 ##### console log
 ```text
 Request method:	POST
@@ -561,14 +568,17 @@ Content-Length: 0
 Date: Tue, 24 Sep 2019 12:43:19 GMT
 ```
 
-#### Application properties
+### 5.2. Application properties
 In application.properties we changed default port.  
-To read it:
+To read the value of server.port:
 - test class has to have annotation @TestPropertySource
 - test class has to extend AbstractTestNGSpringContextTests
 - port can be assigned with @Value
 
-## Conclusion
+## 6. Conclusion
+Testing an application with rest-assured library is efficient, and with use of RequestLoggingFilter any inaccuracy is conveniently track down.
+In our application the most complicated in implementation was JWT, but adding token to tests, required only a few minor changes.
+Spring Boot, gradle and TestNG offer a lot more, but we have a great place to start.
 
 ### Useful links:
 [//]: # "TODO [Link to repo](???)"
